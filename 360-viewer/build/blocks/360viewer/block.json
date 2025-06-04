@@ -1,0 +1,36 @@
+{
+  "apiVersion": 2,
+  "name": "psv360/viewer",
+  "title": "360°ビューア",
+  "category": "media",
+  "icon": "format-image",
+  "description": "360°写真を表示するビューアーブロック",
+  "keywords": [
+    "360",
+    "panorama",
+    "viewer",
+    "photo"
+  ],
+  "version": "1.0.3",
+  "textdomain": "360-viewer",
+  "attributes": {
+    "imageUrl": {
+      "type": "string"
+    }
+  },
+  "supports": {
+    "html": false,
+    "anchor": false,
+    "className": true,
+    "multiple": true,
+    "reusable": true,
+    "inserter": true,
+    "lock": false,
+    "customClassName": true
+  },
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "editorScript": "file:../../../build/index.js",
+  "editorStyle": "file:../../../build/index.css",
+  "style": "file:../../../build/style-index.css",
+  "viewScript": "file:../../../build/viewer.js"
+}
