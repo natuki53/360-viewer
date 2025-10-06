@@ -1,6 +1,6 @@
 {
   "name": "360-viewer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "WordPress 360° Viewer Block",
   "scripts": {
     "build": "wp-scripts build",

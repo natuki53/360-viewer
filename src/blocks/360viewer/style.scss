@@ -77,7 +77,7 @@
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* ダークモード対忁E*/
+/* ダークモード対応 */
 @media (prefers-color-scheme: dark) {
     .psv-btn {
         background: rgba(0, 0, 0, 0.8);
@@ -100,9 +100,9 @@
     left: 20px; /* 左側 */
 }
 
-/* ズームアウト�Eタン�E�E�E�を左下に配置 */
+/* ズームアウトボタン（−）を左下に配置 */
 .psv-zoom-out-btn {
-    bottom: 20px; /* 下かめE0px */
+    bottom: 20px; /* 下から20px */
     left: 20px; /* 左側 */
 }
 
@@ -162,13 +162,13 @@
     transition: width 0.3s;
 }
 
-/* フルスクリーン時�Eスタイル */
+/* フルスクリーン時のスタイル */
 .psv-container:fullscreen {
     padding-top: 0;
     height: 100%;
 }
 
-/* ブラウザごとのフルスクリーンプレフィチE��ス対忁E*/
+/* ブラウザごとのフルスクリーンプレフィックス対応 */
 .psv-container:-webkit-full-screen {
     padding-top: 0;
     height: 100%;
@@ -217,7 +217,7 @@
     }
 }
 
-/* 高DPIチE��イス対忁E*/
+/* 高DPIデバイス対応 */
 @media (min-resolution: 2dppx) {
     .psv-container {
         image-rendering: -webkit-optimize-contrast;

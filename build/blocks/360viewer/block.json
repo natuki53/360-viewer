@@ -11,7 +11,7 @@
     "viewer",
     "photo"
   ],
-  "version": "1.0.3",
+  "version": "1.0.2",
   "textdomain": "360-viewer",
   "attributes": {
     "imageUrl": {

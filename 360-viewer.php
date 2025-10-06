@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 360° Viewer
  * Description: Add a 360° photo viewer block using Three.js.
- * Version: 1.1.6
+ * Version: 1.0.2
  * Author: natuki
  */
 
@@ -48,7 +48,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-script',
             plugins_url('build/viewer.js', __FILE__),
             array('three-js'),
-            '1.1.6',
+            '1.0.2',
             true
         );
     } else {
@@ -57,7 +57,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-script',
             plugins_url('src/blocks/360viewer/viewer.js', __FILE__),
             array('three-js'),
-            '1.1.6',
+            '1.0.2',
             true
         );
     }
@@ -68,7 +68,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-style',
             plugins_url('build/style-index.css', __FILE__),
             array(),
-            '1.1.6'
+            '1.0.2'
         );
     } else {
         // ビルドされていない場合はソースのスタイルシートを使用
@@ -76,7 +76,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-style',
             plugins_url('src/blocks/360viewer/style.scss', __FILE__),
             array(),
-            '1.1.6'
+            '1.0.2'
         );
     }
 
@@ -86,7 +86,7 @@ function viewer360_enqueue_scripts() {
         'PSV360Config',
         array(
             'disableResponsiveImages' => true,
-            'version' => '1.1.6',
+            'version' => '1.0.2',
         )
     );
 }
