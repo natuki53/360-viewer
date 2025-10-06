@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.2] - 2024-01-XX
+## [1.0.1] - 2024-01-XX
 
 ### Fixed
 - 重大なメモリリーク問題を修正（イベントリスナーの正しい削除）
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebGLコンテキスト損失時の処理を追加
 - Canvas2Dフォールバックでの実際の画像色取得を修正
 - style.scssの文字化けを修正
-- バージョン番号を統一（1.0.2に統一）
+- バージョン番号を統一（1.0.1に統一）
 - 重複しているeditor.jsを削除
 
 ### Added
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Three.jsのバージョン互換性を向上
 - エラーハンドリングの強化
 
-## [1.0.1] - 2024-01-XX
+## [1.0.0] - 2024-01-XX
 
 ### Added
 - モバイル対応の強化
@@ -42,12 +42,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - フルスクリーン表示機能
 - ズームイン/アウト機能
 - 自動回転機能
-
-## [1.0.0] - 2024-01-XX
-
-### Added
-- 初回リリース
-- Three.jsを使用した360°ビューアー
-- ドラッグによる視点移動
-- フルスクリーン表示対応
-- レスポンシブデザイン（モバイル対応）
