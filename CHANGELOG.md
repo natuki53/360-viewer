@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - モバイル対応の強化
 - ピンチズーム機能の追加
 - パフォーマンス最適化
+- 基本的な360°ビューアー機能
+- Three.jsを使用したWebGLレンダリング
+- Canvas2Dフォールバック対応
+- フルスクリーン表示機能
+- ズームイン/アウト機能
+- 自動回転機能
 
 ## [1.0.0] - 2024-01-XX
 
