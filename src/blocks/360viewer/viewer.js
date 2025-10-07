@@ -7,6 +7,174 @@ const activeViewers = new Set();
 // デバッグモード（開発時のみtrueに設定）
 const DEBUG_MODE = false;
 
+// グローバルなデバイス情報（一度だけ判定）
+let globalDeviceInfo = null;
+
+// グローバルなWebGL設定（一度だけ決定）
+let globalWebGLConfig = null;
+
+// デバイス情報を一度だけ取得する関数
+function getGlobalDeviceInfo() {
+    if (globalDeviceInfo) {
+        return globalDeviceInfo;
+    }
+    
+    globalDeviceInfo = {
+        isMobile: detectMobileDevice(),
+        isMac: /Mac|Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.userAgent),
+        webglSupported: detectWebGLSupport(),
+        hardwareAccelerationEnabled: detectHardwareAcceleration(),
+        userAgent: navigator.userAgent
+    };
+    
+    if (DEBUG_MODE) {
+        console.log('Global device info detected:', globalDeviceInfo);
+    }
+    
+    return globalDeviceInfo;
+}
+
+// WebGL設定を一度だけ取得する関数
+function getGlobalWebGLConfig() {
+    if (globalWebGLConfig) {
+        return globalWebGLConfig;
+    }
+    
+    const deviceInfo = getGlobalDeviceInfo();
+    
+    globalWebGLConfig = {
+        rendererOptions: {
+            antialias: true,
+            preserveDrawingBuffer: true
+        },
+        pixelRatio: 1.0
+    };
+    
+    // モバイルデバイス用の設定
+    if (deviceInfo.isMobile) {
+        globalWebGLConfig.rendererOptions.powerPreference = 'low-power';
+        // failIfMajorPerformanceCaveatを削除（WebGLが動作しない原因の可能性）
+        globalWebGLConfig.rendererOptions.antialias = false; // アンチエイリアスを無効化
+        globalWebGLConfig.rendererOptions.preserveDrawingBuffer = false; // 描画バッファを保持しない
+        globalWebGLConfig.pixelRatio = Math.min(window.devicePixelRatio, 1.5); // 1.5に緩和
+        if (DEBUG_MODE) {
+            console.log('Global WebGL config: Mobile-optimized settings (WebGL enabled)');
+        }
+    } else if (deviceInfo.hardwareAccelerationEnabled) {
+        if (deviceInfo.isMac) {
+            globalWebGLConfig.rendererOptions.powerPreference = 'high-performance'; // Macでは高パフォーマンスを優先
+            globalWebGLConfig.pixelRatio = Math.min(window.devicePixelRatio, 3); // Macではより高い解像度を許可
+        } else {
+            globalWebGLConfig.rendererOptions.powerPreference = 'low-power'; // 他のデバイスでは電力消費を考慮
+            globalWebGLConfig.pixelRatio = Math.min(window.devicePixelRatio, 2); // 他のデバイスでは制限
+        }
+    } else {
+        // ハードウェアアクセラレーションが無効の場合はソフトウェアレンダリングを許可
+        globalWebGLConfig.rendererOptions.powerPreference = 'low-power';
+        globalWebGLConfig.rendererOptions.failIfMajorPerformanceCaveat = false;
+        globalWebGLConfig.pixelRatio = 1;
+        if (DEBUG_MODE) {
+            console.warn('Global WebGL config: Software rendering mode');
+        }
+    }
+    
+    if (DEBUG_MODE) {
+        console.log('Global WebGL config:', globalWebGLConfig);
+    }
+    
+    return globalWebGLConfig;
+}
+
+// デバイス判定関数（グローバル）
+function detectMobileDevice() {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const windowWidth = window.innerWidth;
+    
+    const result = {
+        hasTouch,
+        mobileUA,
+        isMac: /Mac|Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.userAgent),
+        windowWidth,
+        userAgent: navigator.userAgent
+    };
+    
+    if (DEBUG_MODE) {
+        console.log('Mobile Detection:', result);
+    }
+    
+    return hasTouch && (mobileUA || windowWidth <= 768);
+}
+
+// WebGLサポート検出（グローバル）
+function detectWebGLSupport() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+            if (DEBUG_MODE) {
+                console.warn('WebGL not supported: No WebGL context available');
+            }
+            return false;
+        }
+        
+        // WebGLの基本機能をテスト
+        const testProgram = gl.createProgram();
+        if (!testProgram) {
+            if (DEBUG_MODE) {
+                console.warn('WebGL not supported: Cannot create WebGL program');
+            }
+            return false;
+        }
+        
+        // テスト用のシェーダーを作成
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        
+        if (!vertexShader || !fragmentShader) {
+            if (DEBUG_MODE) {
+                console.warn('WebGL not supported: Cannot create shaders');
+            }
+            return false;
+        }
+        
+        // リソースをクリーンアップ
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
+        gl.deleteProgram(testProgram);
+        
+        if (DEBUG_MODE) {
+            console.log('WebGL support confirmed');
+        }
+        
+        return true;
+    } catch (e) {
+        if (DEBUG_MODE) {
+            console.warn('WebGL not supported:', e.message);
+        }
+        return false;
+    }
+}
+
+// ハードウェアアクセラレーション検出（グローバル）
+function detectHardwareAcceleration() {
+    try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return false;
+        
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+            const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+            return !renderer.toLowerCase().includes('software');
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 class PanoramaViewer {
     constructor(container, imageUrl) {
         this.container = container;
@@ -28,18 +196,19 @@ class PanoramaViewer {
         this.autoRotateTimeout = null;
         this.isFullscreen = false;
         this.isDisposed = false;
+        this.isVisible = true; // 画面内に表示されているか
+        this.intersectionObserver = null; // Intersection Observer
 
         // 時間ベースの自動回転用（フレームレート非依存）
         this.lastTime = 0;
         this.autoRotateSpeed = 3;
 
-        // デバイス判定（Mac対応改善）
-        this.isMobile = this.detectMobileDevice();
-        this.isMac = /Mac|Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.userAgent);
-        
-        // WebGLサポートの検出
-        this.webglSupported = this.detectWebGLSupport();
-        this.hardwareAccelerationEnabled = this.detectHardwareAcceleration();
+        // グローバルなデバイス情報を使用
+        const deviceInfo = getGlobalDeviceInfo();
+        this.isMobile = deviceInfo.isMobile;
+        this.isMac = deviceInfo.isMac;
+        this.webglSupported = deviceInfo.webglSupported;
+        this.hardwareAccelerationEnabled = deviceInfo.hardwareAccelerationEnabled;
 
         // バインド済みメソッドを保存（イベントリスナー削除用）
         this.boundOnDocumentMouseDown = this.onDocumentMouseDown.bind(this);
@@ -80,15 +249,15 @@ class PanoramaViewer {
 
         // デバッグ情報の表示
         if (DEBUG_MODE) {
-            console.log('360°ビューアーを初期化中...');
-            console.log('システム情報:', {
-                isMobile: this.isMobile,
-                isMac: this.isMac,
-                webglSupported: this.webglSupported,
-                hardwareAccelerationEnabled: this.hardwareAccelerationEnabled,
-                userAgent: navigator.userAgent,
-                hasTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0
-            });
+        console.log('360°ビューアーを初期化中...');
+        console.log('システム情報:', {
+            isMobile: this.isMobile,
+            isMac: this.isMac,
+            webglSupported: this.webglSupported,
+            hardwareAccelerationEnabled: this.hardwareAccelerationEnabled,
+            userAgent: navigator.userAgent,
+            hasTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        });
         }
         
         if (!this.webglSupported && DEBUG_MODE) {
@@ -98,62 +267,39 @@ class PanoramaViewer {
         }
 
         this.init();
+        this.setupIntersectionObserver();
     }
 
-    // デバイス判定メソッド（Mac対応改善）
-    detectMobileDevice() {
-        // タッチデバイスの判定
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        
-        // ユーザーエージェントによる判定
-        const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Macの場合は画面サイズだけで判定しない（Macでもウィンドウが小さい場合がある）
-        const isMac = /Mac|Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.userAgent);
-        
-        if (isMac) {
-            // Macの場合はタッチデバイスかどうかで判定
-            return hasTouch && mobileUA;
-        } else {
-            // Mac以外の場合は従来の判定
-            return mobileUA || (hasTouch && window.innerWidth <= 768);
-        }
-    }
 
-    // WebGLサポートの検出
-    detectWebGLSupport() {
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            return !!gl;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    // ハードウェアアクセラレーションの検出
-    detectHardwareAcceleration() {
-        try {
-            const canvas = document.createElement('canvas');
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
-            if (!gl) return false;
-            
-            // WebGL拡張機能の確認
-            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-            if (debugInfo) {
-                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                // ソフトウェアレンダリングの検出
-                return !renderer.toLowerCase().includes('software') && 
-                       !renderer.toLowerCase().includes('mesa') &&
-                       !renderer.toLowerCase().includes('llvmpipe');
+    // Intersection Observerのセットアップ（メモリ最適化）
+    setupIntersectionObserver() {
+        if (!('IntersectionObserver' in window)) {
+            if (DEBUG_MODE) {
+                console.log('IntersectionObserver not supported, skipping visibility optimization');
             }
-            
-            // 拡張機能が利用できない場合は基本的なWebGLサポートを確認
-            return true;
-        } catch (e) {
-            return false;
+            return;
         }
+
+        this.intersectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                this.isVisible = entry.isIntersecting;
+                if (this.isVisible) {
+                    if (DEBUG_MODE) {
+                        console.log('Viewer became visible, resuming animation');
+                    }
+                    this.startAnimation();
+                } else {
+                    if (DEBUG_MODE) {
+                        console.log('Viewer became hidden, pausing animation');
+                    }
+                    this.stopAnimation();
+                }
+            });
+        }, {
+            threshold: 0.1 // 10%表示されたら可視とみなす
+        });
+
+        this.intersectionObserver.observe(this.container);
     }
 
     init() {
@@ -211,19 +357,19 @@ class PanoramaViewer {
                     texture.encoding = THREE.sRGBEncoding;
                 }
                 
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.repeat.x = 1.0;
-                texture.minFilter = THREE.LinearFilter;
-                texture.magFilter = THREE.LinearFilter;
-                texture.generateMipmaps = false;  // ミップマップを無効化して元の色を保持
-                
-                const material = new THREE.MeshBasicMaterial({ 
-                    map: texture,
-                    side: THREE.DoubleSide
-                });
-                
-                this.sphere = new THREE.Mesh(geometry, material);
-                this.scene.add(this.sphere);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.repeat.x = 1.0;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = false;  // ミップマップを無効化して元の色を保持
+            
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture,
+                side: THREE.DoubleSide
+            });
+            
+            this.sphere = new THREE.Mesh(geometry, material);
+            this.scene.add(this.sphere);
             },
             // onProgress
             undefined,
@@ -251,6 +397,17 @@ class PanoramaViewer {
             console.warn('WebGLコンテキストが失われました');
         }
         this.stopAnimation();
+        
+        // モバイルではCanvas2Dフォールバックに切り替え
+        if (this.isMobile && this.webglSupported) {
+            if (DEBUG_MODE) {
+                console.log('Mobile device - attempting Canvas2D fallback');
+            }
+            this.showErrorMessage('WebGLが利用できません。Canvas2Dモードに切り替えます...');
+            setTimeout(() => {
+                this.switchToCanvas2D();
+            }, 1000);
+        }
     }
 
     // WebGLコンテキスト復元時の処理
@@ -261,51 +418,97 @@ class PanoramaViewer {
         this.startAnimation();
     }
 
+    // Canvas2Dフォールバックに切り替え
+    switchToCanvas2D() {
+        if (DEBUG_MODE) {
+            console.log('Switching to Canvas2D fallback');
+        }
+        
+        // WebGLレンダラーを削除
+        if (this.renderer && this.renderer.domElement) {
+            this.container.removeChild(this.renderer.domElement);
+        }
+        
+        // Canvas2Dレンダラーを作成
+        this.renderer = this.createCanvas2DRenderer();
+        this.container.appendChild(this.renderer.domElement);
+        
+        // アニメーションを再開
+        this.startAnimation();
+        
+        if (DEBUG_MODE) {
+            console.log('Canvas2D fallback activated');
+        }
+    }
+
     // WebGLレンダラーの作成（フォールバック対応）
     createRenderer() {
         // WebGLサポートの確認
         if (!this.webglSupported) {
             if (DEBUG_MODE) {
-                console.warn('WebGLがサポートされていません。Canvas2Dフォールバックを使用します。');
+            console.warn('WebGLがサポートされていません。Canvas2Dフォールバックを使用します。');
             }
             return this.createCanvas2DRenderer();
         }
 
         try {
-            // MacでのWebGL設定を最適化
-            const rendererOptions = {
-                antialias: true,
-                preserveDrawingBuffer: true
-            };
-
-            // ハードウェアアクセラレーションの状態に応じて設定を調整
-            if (this.hardwareAccelerationEnabled) {
-                if (this.isMac) {
-                    rendererOptions.powerPreference = 'high-performance'; // Macでは高パフォーマンスを優先
+            // グローバルなWebGL設定を使用
+            const webglConfig = getGlobalWebGLConfig();
+            
+            if (DEBUG_MODE) {
+                console.log('Creating WebGL renderer with config:', webglConfig.rendererOptions);
+            }
+            
+            let renderer;
+            
+            // モバイルでは複数の設定を試す
+            if (this.isMobile) {
+                const configs = [
+                    webglConfig.rendererOptions, // 元の設定
+                    { antialias: false, preserveDrawingBuffer: false }, // 最小設定
+                    { antialias: false }, // さらに最小設定
+                    {} // デフォルト設定
+                ];
+                
+                for (let i = 0; i < configs.length; i++) {
+                    try {
+                        if (DEBUG_MODE) {
+                            console.log(`Trying WebGL config ${i + 1}:`, configs[i]);
+                        }
+                        renderer = new THREE.WebGLRenderer(configs[i]);
+                        
+                        // WebGLレンダラーが正常に作成されたかチェック
+                        if (renderer && renderer.domElement && renderer.getContext()) {
+                            if (DEBUG_MODE) {
+                                console.log(`WebGL renderer created successfully with config ${i + 1}`);
+                            }
+                            break;
                 } else {
-                    rendererOptions.powerPreference = 'low-power'; // 他のデバイスでは電力消費を考慮
+                            throw new Error(`WebGL renderer creation failed with config ${i + 1}`);
+                        }
+                    } catch (configError) {
+                        if (DEBUG_MODE) {
+                            console.warn(`WebGL config ${i + 1} failed:`, configError.message);
+                        }
+                        if (i === configs.length - 1) {
+                            throw configError; // 最後の設定でも失敗した場合
+                        }
+                    }
                 }
             } else {
-                // ハードウェアアクセラレーションが無効の場合はソフトウェアレンダリングを許可
-                rendererOptions.powerPreference = 'low-power';
-                rendererOptions.failIfMajorPerformanceCaveat = false;
-                if (DEBUG_MODE) {
-                    console.warn('ハードウェアアクセラレーションが無効です。ソフトウェアレンダリングを使用します。');
+                // デスクトップでは通常の設定
+                renderer = new THREE.WebGLRenderer(webglConfig.rendererOptions);
+                
+                // WebGLレンダラーが正常に作成されたかチェック
+                if (!renderer || !renderer.domElement || !renderer.getContext()) {
+                    throw new Error('WebGL renderer creation failed');
                 }
             }
-
-            const renderer = new THREE.WebGLRenderer(rendererOptions);
             
-            // ピクセル比設定を調整
-            if (this.hardwareAccelerationEnabled) {
-                if (this.isMac) {
-                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3)); // Macではより高い解像度を許可
-                } else {
-                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 他のデバイスでは制限
-                }
-            } else {
-                // ソフトウェアレンダリングの場合は低い解像度で動作
-                renderer.setPixelRatio(1);
+            // グローバルなピクセル比設定を使用
+            renderer.setPixelRatio(webglConfig.pixelRatio);
+            if (DEBUG_MODE) {
+                console.log('WebGL renderer created successfully - pixel ratio:', webglConfig.pixelRatio);
             }
             
             renderer.setSize(this.container.clientWidth, this.container.clientHeight);
@@ -316,16 +519,23 @@ class PanoramaViewer {
                 renderer.outputColorSpace = THREE.SRGBColorSpace;
             } else {
                 // 古いバージョン用
-                renderer.outputEncoding = THREE.sRGBEncoding;
-                renderer.gammaFactor = 2.2;
-                renderer.gammaOutput = true;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.gammaFactor = 2.2;
+            renderer.gammaOutput = true;
             }
 
             return renderer;
         } catch (error) {
             console.error('WebGLレンダラーの作成に失敗しました:', error);
             if (DEBUG_MODE) {
-                console.warn('Canvas2Dフォールバックを使用します。');
+                console.warn('WebGL initialization failed, switching to Canvas2D fallback');
+                console.warn('Error details:', error.message);
+                console.warn('Device info:', {
+                    isMobile: this.isMobile,
+                    webglSupported: this.webglSupported,
+                    hardwareAccelerationEnabled: this.hardwareAccelerationEnabled,
+                    userAgent: navigator.userAgent
+                });
             }
             return this.createCanvas2DRenderer();
         }
@@ -390,7 +600,7 @@ class PanoramaViewer {
         }
     }
 
-    // Canvas2Dでのパノラマ描画
+    // Canvas2Dでのパノラマ描画（WebGL互換版）
     drawPanoramaOnCanvas(ctx, image, width, height) {
         // キャンバスをクリア
         ctx.clearRect(0, 0, width, height);
@@ -404,86 +614,245 @@ class PanoramaViewer {
         const imageData = tempCtx.getImageData(0, 0, image.width, image.height);
         const pixels = imageData.data;
         
+        // カメラの設定（WebGLと同じ）
+        const fov = this.camera.fov;
+        const aspect = width / height;
+        
         // 球面座標からスクリーン座標への変換
         const phi = THREE.MathUtils.degToRad(90 - this.lat);
         const theta = THREE.MathUtils.degToRad(this.lon);
         
-        // カメラの位置を計算
+        // カメラの位置（WebGLと同じ）
         const cameraX = 100 * Math.sin(phi) * Math.cos(theta);
         const cameraY = 100 * Math.cos(phi);
         const cameraZ = 100 * Math.sin(phi) * Math.sin(theta);
         
-        // 球面の各点を描画
-        const segments = 60;
-        const rings = 40;
+        // カメラの向き
+        const cameraDirX = -cameraX;
+        const cameraDirY = -cameraY;
+        const cameraDirZ = -cameraZ;
+        const cameraDirLength = Math.sqrt(cameraDirX * cameraDirX + cameraDirY * cameraDirY + cameraDirZ * cameraDirZ);
+        const cameraDirNormX = cameraDirX / cameraDirLength;
+        const cameraDirNormY = cameraDirY / cameraDirLength;
+        const cameraDirNormZ = cameraDirZ / cameraDirLength;
         
-        for (let i = 0; i <= rings; i++) {
-            const ringPhi = (i / rings) * Math.PI;
-            
-            for (let j = 0; j <= segments; j++) {
-                const segmentTheta = (j / segments) * 2 * Math.PI;
+        // カメラの上方向
+        const cameraUpX = 0;
+        const cameraUpY = 1;
+        const cameraUpZ = 0;
+        
+        // カメラの右方向（外積）
+        const cameraRightX = cameraDirNormY * cameraUpZ - cameraDirNormZ * cameraUpY;
+        const cameraRightY = cameraDirNormZ * cameraUpX - cameraDirNormX * cameraUpZ;
+        const cameraRightZ = cameraDirNormX * cameraUpY - cameraDirNormY * cameraUpX;
+        const cameraRightLength = Math.sqrt(cameraRightX * cameraRightX + cameraRightY * cameraRightY + cameraRightZ * cameraRightZ);
+        const cameraRightNormX = cameraRightX / cameraRightLength;
+        const cameraRightNormY = cameraRightY / cameraRightLength;
+        const cameraRightNormZ = cameraRightZ / cameraRightLength;
+        
+        // カメラの実際の上方向（外積）
+        const cameraActualUpX = cameraRightNormY * cameraDirNormZ - cameraRightNormZ * cameraDirNormY;
+        const cameraActualUpY = cameraRightNormZ * cameraDirNormX - cameraRightNormX * cameraDirNormZ;
+        const cameraActualUpZ = cameraRightNormX * cameraDirNormY - cameraRightNormY * cameraDirNormX;
+        
+        // FOVに基づくスケール
+        const fovRad = THREE.MathUtils.degToRad(fov);
+        const scale = Math.tan(fovRad / 2);
+        
+        // スクリーンの各ピクセルに対して処理
+        const step = 1; // 高画質のため1ピクセルごとに処理
+        for (let y = 0; y < height; y += step) {
+            for (let x = 0; x < width; x += step) {
+                // スクリーン座標を-1から1の範囲に正規化
+                const screenX = (2 * x / width - 1) * aspect * scale;
+                const screenY = (1 - 2 * y / height) * scale;
                 
-                // 球面上の点の座標
-                const x = Math.sin(ringPhi) * Math.cos(segmentTheta);
-                const y = Math.cos(ringPhi);
-                const z = Math.sin(ringPhi) * Math.sin(segmentTheta);
+                // レイの方向
+                const rayDirX = cameraDirNormX + screenX * cameraRightNormX + screenY * cameraActualUpX;
+                const rayDirY = cameraDirNormY + screenX * cameraRightNormY + screenY * cameraActualUpY;
+                const rayDirZ = cameraDirNormZ + screenX * cameraRightNormZ + screenY * cameraActualUpZ;
                 
-                // カメラからの距離を計算
-                const dx = x - cameraX / 100;
-                const dy = y - cameraY / 100;
-                const dz = z - cameraZ / 100;
+                // レイの方向を正規化
+                const rayLength = Math.sqrt(rayDirX * rayDirX + rayDirY * rayDirY + rayDirZ * rayDirZ);
+                const rayNormX = rayDirX / rayLength;
+                const rayNormY = rayDirY / rayLength;
+                const rayNormZ = rayDirZ / rayLength;
                 
-                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                // 球面座標に変換
+                const spherePhi = Math.acos(rayNormY);
+                const sphereTheta = Math.atan2(rayNormZ, rayNormX);
                 
-                if (distance > 0) {
-                    // スクリーン座標に変換
-                    const screenX = (dx / distance) * width / 2 + width / 2;
-                    const screenY = (dy / distance) * height / 2 + height / 2;
+                // テクスチャ座標に変換
+                const u = (sphereTheta + Math.PI) / (2 * Math.PI);
+                const v = spherePhi / Math.PI;
+                
+                // 画像から色を取得
+                const imageX = Math.floor(u * (image.width - 1));
+                const imageY = Math.floor(v * (image.height - 1));
+                
+                if (imageX >= 0 && imageX < image.width && imageY >= 0 && imageY < image.height) {
+                    const pixelIndex = (imageY * image.width + imageX) * 4;
+                    const r = pixels[pixelIndex];
+                    const g = pixels[pixelIndex + 1];
+                    const b = pixels[pixelIndex + 2];
+                    const a = pixels[pixelIndex + 3] / 255;
                     
-                    // テクスチャ座標を計算
-                    const u = (segmentTheta + Math.PI) / (2 * Math.PI);
-                    const v = ringPhi / Math.PI;
-                    
-                    // 画像から実際の色を取得
-                    const imageX = Math.floor(u * (image.width - 1));
-                    const imageY = Math.floor(v * (image.height - 1));
-                    
-                    if (imageX >= 0 && imageX < image.width && imageY >= 0 && imageY < image.height) {
-                        // ピクセル配列のインデックスを計算
-                        const pixelIndex = (imageY * image.width + imageX) * 4;
-                        const r = pixels[pixelIndex];
-                        const g = pixels[pixelIndex + 1];
-                        const b = pixels[pixelIndex + 2];
-                        const a = pixels[pixelIndex + 3] / 255;
-                        
-                        // 実際の画像の色で描画
-                        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
-                        ctx.fillRect(Math.floor(screenX), Math.floor(screenY), 2, 2);
-                    }
+                    // 色を描画
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+                    ctx.fillRect(x, y, step, step);
                 }
             }
         }
+        
+        if (DEBUG_MODE) {
+            console.log('Canvas2D mode: Drawing panorama with WebGL-compatible projection');
+        }
     }
 
-    // エラーメッセージの表示
+    // エラーメッセージの表示（警告マークのみ）
     showErrorMessage(message) {
+        // 既存のエラーメッセージを削除
+        const existingError = this.container.querySelector('.psv-error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
         const errorDiv = document.createElement('div');
         errorDiv.className = 'psv-error-message';
         errorDiv.style.cssText = `
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 0, 0, 0.8);
+            top: 10px;
+            left: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 165, 0, 0.9);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            user-select: none;
+            transition: transform 0.2s;
+        `;
+        errorDiv.textContent = 'ℹ';
+        errorDiv.title = 'Canvas2Dモードで動作中 - クリック/タップで詳細表示';
+        
+        // ホバー効果
+        errorDiv.addEventListener('mouseenter', () => {
+            errorDiv.style.transform = 'scale(1.1)';
+        });
+        
+        errorDiv.addEventListener('mouseleave', () => {
+            errorDiv.style.transform = 'scale(1)';
+        });
+        
+        // クリックで詳細表示
+        errorDiv.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showDetailedError(message);
+        });
+        
+        // タッチイベント対応
+        errorDiv.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showDetailedError(message);
+        });
+        
+        this.container.appendChild(errorDiv);
+    }
+    
+    // 詳細エラーメッセージの表示
+    showDetailedError(message) {
+        // 既存の詳細エラーを削除
+        const existingDetail = this.container.querySelector('.psv-detailed-error');
+        if (existingDetail) {
+            existingDetail.remove();
+            return; // トグル動作：既に表示されている場合は閉じる
+        }
+        
+        const detailDiv = document.createElement('div');
+        detailDiv.className = 'psv-detailed-error';
+        detailDiv.style.cssText = `
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.95);
             color: white;
             padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            font-family: Arial, sans-serif;
-            z-index: 1000;
+            border-radius: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+            max-width: 350px;
+            z-index: 1001;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease-in-out;
         `;
-        errorDiv.textContent = message;
-        this.container.appendChild(errorDiv);
+        
+        // 詳細情報を構築
+        const detailHTML = `
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #FFA500;">
+                    ℹ️ お知らせ
+                </div>
+                <div style="font-size: 14px; color: #fff; line-height: 1.8;">
+                    WebGLが使用できないため画質を落として表示しています。<br>
+                    高画質で利用するにはハードウェアアクセラレーションを有効にしてください。
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <div style="font-size: 12px; color: #999; text-align: center;">
+                    クリック/タップで閉じる
+                </div>
+            </div>
+        `;
+        
+        detailDiv.innerHTML = detailHTML;
+        
+        // クリックで閉じる
+        detailDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            detailDiv.remove();
+        });
+        
+        // タッチイベントで閉じる
+        detailDiv.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            detailDiv.remove();
+        });
+        
+        this.container.appendChild(detailDiv);
+        
+        // 10秒後に自動で閉じる
+        setTimeout(() => {
+            if (detailDiv.parentNode) {
+                detailDiv.remove();
+            }
+        }, 10000);
+    }
+    
+    // ブラウザ情報を取得
+    getBrowserInfo() {
+        const ua = navigator.userAgent;
+        if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+            return 'Chrome';
+        } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+            return 'Safari';
+        } else if (ua.indexOf('Firefox') > -1) {
+            return 'Firefox';
+        } else if (ua.indexOf('Edg') > -1) {
+            return 'Edge';
+        } else {
+            return 'その他';
+        }
     }
 
     // ビューアーのアクティブ化
@@ -528,6 +897,12 @@ class PanoramaViewer {
         this.isDisposed = true;
         this.deactivate();
         this.observer.disconnect();
+        
+        // Intersection Observerのクリーンアップ
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+            this.intersectionObserver = null;
+        }
 
         // autoRotateTimeoutのクリーンアップ
         if (this.autoRotateTimeout) {
@@ -563,7 +938,7 @@ class PanoramaViewer {
             }
             
             if (this.container.contains(this.renderer.domElement)) {
-                this.container.removeChild(this.renderer.domElement);
+            this.container.removeChild(this.renderer.domElement);
             }
         }
 
@@ -610,7 +985,7 @@ class PanoramaViewer {
             this.boundFullscreenClick = (e) => {
                 e.stopPropagation();
                 if (DEBUG_MODE) {
-                    console.log('フルスクリーンボタン onclick');
+                console.log('フルスクリーンボタン onclick');
                 }
                 this.toggleFullscreen();
             };
@@ -790,7 +1165,8 @@ class PanoramaViewer {
     onDocumentMouseMove(event) {
         if (this.isUserInteracting) {
             this.lon = (this.onMouseDownMouseX - event.clientX) * 0.1 + this.onMouseDownLon;
-            this.lat = (event.clientY - this.onMouseDownMouseY) * 0.1 + this.onMouseDownLat;
+            // 縦方向を反転：下にドラッグ = 上を見る（Googleストリートビューと同じ）
+            this.lat = (this.onMouseDownMouseY - event.clientY) * 0.1 + this.onMouseDownLat;
         }
         this.updateCursor();
     }
@@ -807,6 +1183,14 @@ class PanoramaViewer {
         // ボタンエリアでのタッチイベントは無視する
         if (this.isButtonTouch(event.target)) {
             return;
+        }
+        
+        if (DEBUG_MODE) {
+            console.log('Touch start:', {
+                touches: event.touches.length,
+                target: event.target.className,
+                isMobile: this.isMobile
+            });
         }
         
         if (event.touches.length === 1) {
@@ -830,7 +1214,8 @@ class PanoramaViewer {
         if (event.touches.length === 1 && this.isUserInteracting) {
             event.preventDefault();
             this.lon = (this.onMouseDownMouseX - event.touches[0].pageX) * 0.15 + this.onMouseDownLon;
-            this.lat = (event.touches[0].pageY - this.onMouseDownMouseY) * 0.15 + this.onMouseDownLat;
+            // 縦方向を反転：下にドラッグ = 上を見る（Googleストリートビューと同じ）
+            this.lat = (this.onMouseDownMouseY - event.touches[0].pageY) * 0.15 + this.onMouseDownLat;
         }
         this.updateCursor();
     }
@@ -903,14 +1288,14 @@ class PanoramaViewer {
         }
         
         if (DEBUG_MODE) {
-            console.log('フルスクリーン開始');
+        console.log('フルスクリーン開始');
         }
         
         // 画面回転を横向きに固定（対応ブラウザのみ）
         if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('landscape').catch(err => {
                 if (DEBUG_MODE) {
-                    console.log('画面回転ロックに失敗:', err);
+                console.log('画面回転ロックに失敗:', err);
                 }
             });
         }
@@ -978,20 +1363,20 @@ class PanoramaViewer {
             if (docElement.webkitRequestFullscreen) {
                 docElement.webkitRequestFullscreen().catch(err => {
                     if (DEBUG_MODE) {
-                        console.log('Mac webkitRequestFullscreen 失敗:', err);
+                    console.log('Mac webkitRequestFullscreen 失敗:', err);
                     }
                     this.tryAlternativeFullscreen();
                 });
             } else if (docElement.requestFullscreen) {
                 docElement.requestFullscreen().catch(err => {
                     if (DEBUG_MODE) {
-                        console.log('Mac requestFullscreen 失敗:', err);
+                    console.log('Mac requestFullscreen 失敗:', err);
                     }
                     this.tryAlternativeFullscreen();
                 });
             } else {
                 if (DEBUG_MODE) {
-                    console.log('MacでフルスクリーンAPIが対応していません');
+                console.log('MacでフルスクリーンAPIが対応していません');
                 }
                 this.tryAlternativeFullscreen();
             }
@@ -1000,7 +1385,7 @@ class PanoramaViewer {
             if (docElement.requestFullscreen) {
                 docElement.requestFullscreen().catch(err => {
                     if (DEBUG_MODE) {
-                        console.log('documentElement.requestFullscreen 失敗:', err);
+                    console.log('documentElement.requestFullscreen 失敗:', err);
                     }
                     this.tryAlternativeFullscreen();
                 });
@@ -1012,7 +1397,7 @@ class PanoramaViewer {
                 docElement.msRequestFullscreen();
             } else {
                 if (DEBUG_MODE) {
-                    console.log('フルスクリーンAPIが対応していません');
+                console.log('フルスクリーンAPIが対応していません');
                 }
                 this.tryAlternativeFullscreen();
             }
@@ -1022,7 +1407,7 @@ class PanoramaViewer {
     tryAlternativeFullscreen() {
         // モバイルブラウザでの代替フルスクリーン
         if (DEBUG_MODE) {
-            console.log('代替フルスクリーンモード');
+        console.log('代替フルスクリーンモード');
         }
         
         // ビューポートの制御
@@ -1047,7 +1432,7 @@ class PanoramaViewer {
 
     exitFullscreen() {
         if (DEBUG_MODE) {
-            console.log('フルスクリーン終了');
+        console.log('フルスクリーン終了');
         }
         
         // 画面回転ロックを解除
@@ -1102,7 +1487,7 @@ class PanoramaViewer {
             } else if (document.exitFullscreen) {
                 document.exitFullscreen().catch(err => {
                     if (DEBUG_MODE) {
-                        console.log('Mac フルスクリーン終了失敗:', err);
+                    console.log('Mac フルスクリーン終了失敗:', err);
                     }
                 });
             }
@@ -1111,7 +1496,7 @@ class PanoramaViewer {
             if (document.exitFullscreen) {
                 document.exitFullscreen().catch(err => {
                     if (DEBUG_MODE) {
-                        console.log('フルスクリーン終了失敗:', err);
+                    console.log('フルスクリーン終了失敗:', err);
                     }
                 });
             } else if (document.webkitExitFullscreen) {
@@ -1158,7 +1543,7 @@ class PanoramaViewer {
     }
 
     update() {
-        if (!this.camera || !this.renderer || this.isDisposed) return;
+        if (!this.camera || !this.renderer || this.isDisposed || !this.isVisible) return;
 
         // 時間ベースの自動回転（フレームレート非依存）
         if (this.autoRotate && !this.isUserInteracting) {
@@ -1177,12 +1562,19 @@ class PanoramaViewer {
         this.phi = THREE.MathUtils.degToRad(90 - this.lat);
         this.theta = THREE.MathUtils.degToRad(this.lon);
 
-        this.camera.position.x = 100 * Math.sin(this.phi) * Math.cos(this.theta);
-        this.camera.position.y = 100 * Math.cos(this.phi);
-        this.camera.position.z = 100 * Math.sin(this.phi) * Math.sin(this.theta);
+        // Canvas2DモードとWebGLモードで処理を分ける
+        if (this.renderer.isCanvas2D) {
+            // Canvas2Dモードでは直接描画処理を呼び出す
+            this.renderCanvas2D(this.scene, this.camera);
+        } else {
+            // WebGLモードでは通常の処理
+            this.camera.position.x = 100 * Math.sin(this.phi) * Math.cos(this.theta);
+            this.camera.position.y = 100 * Math.cos(this.phi);
+            this.camera.position.z = 100 * Math.sin(this.phi) * Math.sin(this.theta);
 
-        this.camera.lookAt(this.camera.target);
-        this.renderer.render(this.scene, this.camera);
+            this.camera.lookAt(this.camera.target);
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     zoomIn() {
@@ -1253,4 +1645,4 @@ document.addEventListener('DOMContentLoaded', function() {
         viewers.forEach(viewer => viewer.dispose());
         viewers.clear();
     });
-});
+}); 

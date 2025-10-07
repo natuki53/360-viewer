@@ -6,7 +6,7 @@
   "icon": "format-image",
   "description": "360°写真を表示するビューアーブロック",
   "keywords": ["360", "panorama", "viewer", "photo"],
-  "version": "1.0.2",
+  "version": "1.0.1",
   "textdomain": "360-viewer",
   "attributes": {
     "imageUrl": {
