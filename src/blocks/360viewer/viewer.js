@@ -1583,12 +1583,22 @@ class PanoramaViewer {
         if (!this.camera || this.isDisposed) return;
         this.camera.fov = Math.max(30, this.camera.fov - 10);
         this.camera.updateProjectionMatrix();
+        
+        // Canvas2Dモードの場合は手動で再描画
+        if (this.renderer && this.renderer.isCanvas2D) {
+            this.renderCanvas2D();
+        }
     }
 
     zoomOut() {
         if (!this.camera || this.isDisposed) return;
         this.camera.fov = Math.min(90, this.camera.fov + 10);
         this.camera.updateProjectionMatrix();
+        
+        // Canvas2Dモードの場合は手動で再描画
+        if (this.renderer && this.renderer.isCanvas2D) {
+            this.renderCanvas2D();
+        }
     }
 
     // ボタンタッチかどうかを判定するヘルパーメソッド
