@@ -1147,10 +1147,14 @@ class PanoramaViewer {
     }
 
     onDocumentMouseDown(event) {
-        // ズームボタンやフルスクリーンボタンのクリックは処理しない
+        // ズームボタンやフルスクリーンボタン、エラーメッセージのクリックは処理しない
         if (event.target === this.zoomInButton || 
             event.target === this.zoomOutButton || 
-            (!this.isMobile && event.target === this.fullscreenButton)) {
+            (!this.isMobile && event.target === this.fullscreenButton) ||
+            event.target.classList.contains('psv-error-message') ||
+            event.target.classList.contains('psv-detailed-error') ||
+            event.target.closest('.psv-error-message') ||
+            event.target.closest('.psv-detailed-error')) {
             return;
         }
         
@@ -1606,7 +1610,11 @@ class PanoramaViewer {
         return target === this.zoomInButton || 
                target === this.zoomOutButton || 
                (!this.isMobile && target === this.fullscreenButton) ||
-               target.closest('.psv-btn'); // ボタンの子要素も考慮
+               target.closest('.psv-btn') || // ボタンの子要素も考慮
+               target.classList.contains('psv-error-message') ||
+               target.classList.contains('psv-detailed-error') ||
+               target.closest('.psv-error-message') ||
+               target.closest('.psv-detailed-error'); // エラーメッセージも無視
     }
 
     handleFullscreenChange() {
