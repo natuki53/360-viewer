@@ -68,7 +68,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-style',
             plugins_url('build/style-index.css', __FILE__),
             array(),
-            '1.0.2'
+            '1.0.1'
         );
     } else {
         // ビルドされていない場合はソースのスタイルシートを使用
@@ -76,7 +76,7 @@ function viewer360_enqueue_scripts() {
             'viewer360-style',
             plugins_url('src/blocks/360viewer/style.scss', __FILE__),
             array(),
-            '1.0.2'
+            '1.0.1'
         );
     }
 
