@@ -739,7 +739,7 @@ class PanoramaViewer {
             user-select: none;
             transition: transform 0.2s;
         `;
-        errorDiv.textContent = 'ℹ';
+        errorDiv.textContent = 'i';
         errorDiv.title = 'Canvas2Dモードで動作中 - クリック/タップで詳細表示';
         
         // ホバー効果
@@ -783,33 +783,35 @@ class PanoramaViewer {
             position: absolute;
             top: 50px;
             left: 10px;
+            right: 10px;
             background: rgba(0, 0, 0, 0.95);
             color: white;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 15px;
+            border-radius: 8px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 14px;
-            max-width: 350px;
+            font-size: 13px;
+            max-width: 90%;
+            width: auto;
             z-index: 1001;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-            line-height: 1.6;
-            animation: fadeIn 0.3s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            line-height: 1.5;
+            box-sizing: border-box;
         `;
         
         // 詳細情報を構築
         const detailHTML = `
-            <div style="margin-bottom: 15px;">
-                <div style="font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #FFA500;">
-                    ℹ️ お知らせ
+            <div style="margin-bottom: 10px;">
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #FFA500;">
+                    お知らせ
                 </div>
-                <div style="font-size: 14px; color: #fff; line-height: 1.8;">
+                <div style="font-size: 12px; color: #fff; line-height: 1.6;">
                     WebGLが使用できないため画質を落として表示しています。<br>
                     高画質で利用するにはハードウェアアクセラレーションを有効にしてください。
                 </div>
             </div>
             
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
-                <div style="font-size: 12px; color: #999; text-align: center;">
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <div style="font-size: 11px; color: #999; text-align: center;">
                     クリック/タップで閉じる
                 </div>
             </div>
