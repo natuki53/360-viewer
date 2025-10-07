@@ -431,7 +431,13 @@ class PanoramaViewer {
         
         // Canvas2Dレンダラーを作成
         this.renderer = this.createCanvas2DRenderer();
-        this.container.appendChild(this.renderer.domElement);
+        
+        // Canvasをボタンの前（最初）に挿入してボタンが最前面に来るようにする
+        if (this.container.firstChild) {
+            this.container.insertBefore(this.renderer.domElement, this.container.firstChild);
+        } else {
+            this.container.appendChild(this.renderer.domElement);
+        }
         
         // アニメーションを再開
         this.startAnimation();
@@ -548,6 +554,14 @@ class PanoramaViewer {
         
         canvas.width = this.container.clientWidth;
         canvas.height = this.container.clientHeight;
+        
+        // Canvas要素をボタンの下に配置
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.zIndex = '0'; // 最背面に配置
         
         // Canvas2Dレンダラーのラッパーオブジェクト
         const renderer = {
@@ -685,12 +699,12 @@ class PanoramaViewer {
                 // テクスチャ座標に変換
                 const u = (sphereTheta + Math.PI) / (2 * Math.PI);
                 const v = spherePhi / Math.PI;
-                
-                // 画像から色を取得
+                    
+                    // 画像から色を取得
                 const imageX = Math.floor(u * (image.width - 1));
                 const imageY = Math.floor(v * (image.height - 1));
-                
-                if (imageX >= 0 && imageX < image.width && imageY >= 0 && imageY < image.height) {
+                    
+                    if (imageX >= 0 && imageX < image.width && imageY >= 0 && imageY < image.height) {
                     const pixelIndex = (imageY * image.width + imageX) * 4;
                     const r = pixels[pixelIndex];
                     const g = pixels[pixelIndex + 1];
@@ -783,35 +797,34 @@ class PanoramaViewer {
             position: absolute;
             top: 50px;
             left: 10px;
-            right: 10px;
             background: rgba(0, 0, 0, 0.95);
             color: white;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border-radius: 6px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             font-size: 13px;
-            max-width: 90%;
+            max-width: 280px;
             width: auto;
             z-index: 1001;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             line-height: 1.5;
             box-sizing: border-box;
         `;
         
         // 詳細情報を構築
         const detailHTML = `
-            <div style="margin-bottom: 10px;">
-                <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #FFA500;">
+            <div style="margin-bottom: 8px;">
+                <div style="font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #FFA500;">
                     お知らせ
                 </div>
-                <div style="font-size: 12px; color: #fff; line-height: 1.6;">
+                <div style="font-size: 12px; color: #fff; line-height: 1.5;">
                     WebGLが使用できないため画質を落として表示しています。<br>
                     高画質で利用するにはハードウェアアクセラレーションを有効にしてください。
                 </div>
             </div>
             
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
-                <div style="font-size: 11px; color: #999; text-align: center;">
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <div style="font-size: 10px; color: #999; text-align: center;">
                     クリック/タップで閉じる
                 </div>
             </div>
@@ -982,13 +995,13 @@ class PanoramaViewer {
             this.fullscreenButton.className = 'psv-btn psv-fullscreen-btn';
             this.fullscreenButton.title = 'フルスクリーン';
             this.fullscreenButton.innerHTML = '⛶'; // フルスクリーン開始アイコン
+            this.fullscreenButton.style.pointerEvents = 'auto'; // ボタンのクリックを確実に受け取る
+            this.fullscreenButton.style.position = 'absolute'; // 明示的に指定
+            this.fullscreenButton.style.zIndex = '100'; // Canvasより確実に上に配置
             
             // クリックイベント
             this.boundFullscreenClick = (e) => {
                 e.stopPropagation();
-                if (DEBUG_MODE) {
-                console.log('フルスクリーンボタン onclick');
-                }
                 this.toggleFullscreen();
             };
             this.fullscreenButton.onclick = this.boundFullscreenClick;
@@ -1001,6 +1014,9 @@ class PanoramaViewer {
         this.zoomInButton.className = 'psv-btn psv-zoom-btn psv-zoom-in-btn';
         this.zoomInButton.title = 'ズームイン';
         this.zoomInButton.innerHTML = '+';
+        this.zoomInButton.style.pointerEvents = 'auto'; // ボタンのクリックを確実に受け取る
+        this.zoomInButton.style.position = 'absolute'; // 明示的に指定
+        this.zoomInButton.style.zIndex = '100'; // Canvasより確実に上に配置
         
         this.boundZoomInClick = (e) => {
             e.stopPropagation();
@@ -1022,6 +1038,9 @@ class PanoramaViewer {
         this.zoomOutButton.className = 'psv-btn psv-zoom-btn psv-zoom-out-btn';
         this.zoomOutButton.title = 'ズームアウト';
         this.zoomOutButton.innerHTML = '−';
+        this.zoomOutButton.style.pointerEvents = 'auto'; // ボタンのクリックを確実に受け取る
+        this.zoomOutButton.style.position = 'absolute'; // 明示的に指定
+        this.zoomOutButton.style.zIndex = '100'; // Canvasより確実に上に配置
         
         this.boundZoomOutClick = (e) => {
             e.stopPropagation();
@@ -1073,13 +1092,15 @@ class PanoramaViewer {
 
     // コンテナクリックハンドラー
     onContainerClick(e) {
-        // ボタン以外のクリックをキャンセル
-        if (e.target !== this.zoomInButton && 
-            e.target !== this.zoomOutButton && 
-            (!this.isMobile && e.target !== this.fullscreenButton)) {
-            e.preventDefault();
-            e.stopPropagation();
+        // ボタンのクリックは処理しない
+        if (e.target === this.zoomInButton || 
+            e.target === this.zoomOutButton || 
+            (!this.isMobile && e.target === this.fullscreenButton)) {
+            return; // ボタンクリックは通常通り処理させる
         }
+        // ボタン以外のクリックをキャンセル
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     // イベントリスナーの削除
@@ -1147,13 +1168,15 @@ class PanoramaViewer {
     }
 
     onDocumentMouseDown(event) {
-        // ズームボタンやフルスクリーンボタン、エラーメッセージのクリックは処理しない
+        // ズームボタンやフルスクリーンボタンのクリックは処理しない
         if (event.target === this.zoomInButton || 
             event.target === this.zoomOutButton || 
-            (!this.isMobile && event.target === this.fullscreenButton) ||
-            event.target.classList.contains('psv-error-message') ||
-            event.target.classList.contains('psv-detailed-error') ||
-            event.target.closest('.psv-error-message') ||
+            (!this.isMobile && event.target === this.fullscreenButton)) {
+            return;
+        }
+        
+        // エラーメッセージ（iアイコン）や詳細メッセージのクリックは処理しない
+        if (event.target.closest('.psv-error-message') || 
             event.target.closest('.psv-detailed-error')) {
             return;
         }
@@ -1188,6 +1211,12 @@ class PanoramaViewer {
     onDocumentTouchStart(event) {
         // ボタンエリアでのタッチイベントは無視する
         if (this.isButtonTouch(event.target)) {
+            return;
+        }
+        
+        // エラーメッセージ（iアイコン）や詳細メッセージのタッチは処理しない
+        if (event.target.closest('.psv-error-message') || 
+            event.target.closest('.psv-detailed-error')) {
             return;
         }
         
@@ -1574,12 +1603,12 @@ class PanoramaViewer {
             this.renderCanvas2D(this.scene, this.camera);
         } else {
             // WebGLモードでは通常の処理
-            this.camera.position.x = 100 * Math.sin(this.phi) * Math.cos(this.theta);
-            this.camera.position.y = 100 * Math.cos(this.phi);
-            this.camera.position.z = 100 * Math.sin(this.phi) * Math.sin(this.theta);
+        this.camera.position.x = 100 * Math.sin(this.phi) * Math.cos(this.theta);
+        this.camera.position.y = 100 * Math.cos(this.phi);
+        this.camera.position.z = 100 * Math.sin(this.phi) * Math.sin(this.theta);
 
-            this.camera.lookAt(this.camera.target);
-            this.renderer.render(this.scene, this.camera);
+        this.camera.lookAt(this.camera.target);
+        this.renderer.render(this.scene, this.camera);
         }
     }
 
@@ -1588,7 +1617,7 @@ class PanoramaViewer {
         this.camera.fov = Math.max(30, this.camera.fov - 10);
         this.camera.updateProjectionMatrix();
         
-        // Canvas2Dモードの場合は手動で再描画
+        // Canvas2Dモードの場合は再描画
         if (this.renderer && this.renderer.isCanvas2D) {
             this.renderCanvas2D(this.scene, this.camera);
         }
@@ -1599,7 +1628,7 @@ class PanoramaViewer {
         this.camera.fov = Math.min(90, this.camera.fov + 10);
         this.camera.updateProjectionMatrix();
         
-        // Canvas2Dモードの場合は手動で再描画
+        // Canvas2Dモードの場合は再描画
         if (this.renderer && this.renderer.isCanvas2D) {
             this.renderCanvas2D(this.scene, this.camera);
         }
@@ -1610,11 +1639,7 @@ class PanoramaViewer {
         return target === this.zoomInButton || 
                target === this.zoomOutButton || 
                (!this.isMobile && target === this.fullscreenButton) ||
-               target.closest('.psv-btn') || // ボタンの子要素も考慮
-               target.classList.contains('psv-error-message') ||
-               target.classList.contains('psv-detailed-error') ||
-               target.closest('.psv-error-message') ||
-               target.closest('.psv-detailed-error'); // エラーメッセージも無視
+               target.closest('.psv-btn'); // ボタンの子要素も考慮
     }
 
     handleFullscreenChange() {
