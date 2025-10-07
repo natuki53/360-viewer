@@ -1586,7 +1586,7 @@ class PanoramaViewer {
         
         // Canvas2Dモードの場合は手動で再描画
         if (this.renderer && this.renderer.isCanvas2D) {
-            this.renderCanvas2D();
+            this.renderCanvas2D(this.scene, this.camera);
         }
     }
 
@@ -1597,7 +1597,7 @@ class PanoramaViewer {
         
         // Canvas2Dモードの場合は手動で再描画
         if (this.renderer && this.renderer.isCanvas2D) {
-            this.renderCanvas2D();
+            this.renderCanvas2D(this.scene, this.camera);
         }
     }
 
