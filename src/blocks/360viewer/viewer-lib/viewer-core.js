@@ -35,6 +35,9 @@ export class ViewerCore {
 					'IntersectionObserver not supported, skipping visibility optimization'
 				);
 			}
+			// IntersectionObserver 非対応の場合はすぐにレンダラーを初期化
+			this.initializeRenderer();
+			this.activate();
 			return;
 		}
 
@@ -48,7 +51,9 @@ export class ViewerCore {
 								'Viewer became visible, resuming animation'
 							);
 						}
-						this.startAnimation();
+						// 初回表示時にレンダラーを遅延初期化
+						this.initializeRenderer();
+						this.activate();
 					} else {
 						if ( DEBUG_MODE ) {
 							console.log(
@@ -71,21 +76,57 @@ export class ViewerCore {
 	 * シーン、カメラ、レンダラーを初期化する
 	 */
 	initializeThreeJS() {
+		this.initializeScene();
+		this.initializeRenderer();
+	}
+
+	/**
+	 * シーンとカメラのみを初期化する（レンダラーは遅延）
+	 */
+	initializeScene() {
 		try {
 			this.viewer.scene = new THREE.Scene();
 			this.viewer.camera = new THREE.PerspectiveCamera(
 				75,
 				this.viewer.container.clientWidth /
-					this.viewer.container.clientHeight,
+					this.viewer.container.clientHeight || 1,
 				1,
 				1100
 			);
 			this.viewer.camera.target = new THREE.Vector3( 0, 0, 0 );
+		} catch ( error ) {
+			console.error( 'ビューアーの初期化に失敗しました:', error );
+			showErrorMessage(
+				this.viewer.container,
+				'360°ビューアーの初期化に失敗しました。'
+			);
+		}
+	}
 
+	/**
+	 * レンダラーを初期化してDOMに追加する（初回表示時に呼ぶ）
+	 */
+	initializeRenderer() {
+		if ( this.viewer.renderer ) return;
+
+		try {
 			this.viewer.renderer = this.createRenderer();
+
+			// カメラのアスペクト比を実際のサイズで更新
+			const w = this.viewer.container.clientWidth;
+			const h = this.viewer.container.clientHeight;
+			if ( w && h ) {
+				this.viewer.camera.aspect = w / h;
+				this.viewer.camera.updateProjectionMatrix();
+			}
+
 			this.viewer.container.appendChild(
 				this.viewer.renderer.domElement
 			);
+
+			if ( this.viewer.renderer.isCanvas2D ) {
+				showErrorMessage( this.viewer.container, '' );
+			}
 
 			if ( ! this.viewer.renderer.isCanvas2D ) {
 				this.viewer.renderer.domElement.addEventListener(
@@ -98,14 +139,21 @@ export class ViewerCore {
 					this.boundHandleContextRestored,
 					false
 				);
+
+				// テクスチャがレンダラーより先に読み込まれた場合にアニソトロピーを再適用
+				const texture =
+					this.viewer.sphere?.material?.map;
+				if ( texture ) {
+					configureTextureFilters( texture, this.viewer.renderer );
+					texture.needsUpdate = true;
+				}
 			}
 		} catch ( error ) {
-			console.error( 'ビューアーの初期化に失敗しました:', error );
+			console.error( 'レンダラーの初期化に失敗しました:', error );
 			showErrorMessage(
 				this.viewer.container,
 				'360°ビューアーの初期化に失敗しました。'
 			);
-			return;
 		}
 	}
 
@@ -121,15 +169,22 @@ export class ViewerCore {
 		);
 		geometry.scale( -1, 1, 1 );
 
+		const textureUrl = this.normalizeTextureUrl( this.viewer.imageUrl );
+		this.viewer.imageUrl = textureUrl;
+
 		const textureLoader = new THREE.TextureLoader();
 		const useColorSpace = THREE.SRGBColorSpace !== undefined;
+
+		if ( this.isCrossOriginTexture( textureUrl ) ) {
+			textureLoader.setCrossOrigin( 'anonymous' );
+		}
 
 		if ( ! useColorSpace ) {
 			textureLoader.encoding = THREE.sRGBEncoding;
 		}
 
 		const texture = textureLoader.load(
-			this.viewer.imageUrl,
+			textureUrl,
 			() => {
 				if ( useColorSpace ) {
 					texture.colorSpace = THREE.SRGBColorSpace;
@@ -152,13 +207,89 @@ export class ViewerCore {
 			},
 			undefined,
 			( error ) => {
-				console.error( 'テクスチャの読み込みに失敗しました:', error );
+				const hint = this.getTextureLoadHint( textureUrl );
+				console.error( 'テクスチャの読み込みに失敗しました:', {
+					imageUrl: textureUrl,
+					hint,
+					error,
+				} );
 				showErrorMessage(
 					this.viewer.container,
-					'360°画像の読み込みに失敗しました。画像のURLを確認してください。'
+					`360°画像の読み込みに失敗しました。${ hint }`
 				);
 			}
 		);
+	}
+
+	/**
+	 * data-img から取得したURLを正規化する
+	 * @param {string} rawUrl
+	 * @returns {string}
+	 */
+	normalizeTextureUrl( rawUrl ) {
+		const value = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+		if ( ! value ) {
+			return '';
+		}
+
+		const textarea = document.createElement( 'textarea' );
+		textarea.innerHTML = value;
+		const decoded = textarea.value;
+
+		try {
+			const parsedUrl = new URL( decoded, window.location.href );
+
+			if (
+				window.location.protocol === 'https:' &&
+				parsedUrl.protocol === 'http:' &&
+				parsedUrl.hostname === window.location.hostname
+			) {
+				parsedUrl.protocol = 'https:';
+			}
+
+			return parsedUrl.toString();
+		} catch ( error ) {
+			return decoded;
+		}
+	}
+
+	/**
+	 * 外部オリジンの画像かどうかを判定する
+	 * @param {string} imageUrl
+	 * @returns {boolean}
+	 */
+	isCrossOriginTexture( imageUrl ) {
+		try {
+			const parsedUrl = new URL( imageUrl, window.location.href );
+			return parsedUrl.origin !== window.location.origin;
+		} catch ( error ) {
+			return false;
+		}
+	}
+
+	/**
+	 * テクスチャ読み込み失敗時のヒント文言を生成する
+	 * @param {string} imageUrl
+	 * @returns {string}
+	 */
+	getTextureLoadHint( imageUrl ) {
+		try {
+			const parsedUrl = new URL( imageUrl, window.location.href );
+			if (
+				window.location.protocol === 'https:' &&
+				parsedUrl.protocol === 'http:'
+			) {
+				return 'HTTPSページでHTTP画像が指定されています（混在コンテンツ）。画像URLをHTTPSに変更してください。';
+			}
+
+			if ( parsedUrl.origin !== window.location.origin ) {
+				return '外部ドメイン画像です。配信元でCORS許可ヘッダー（Access-Control-Allow-Origin）を確認してください。';
+			}
+		} catch ( error ) {
+			return '画像URLの形式が不正です。URLを再設定してください。';
+		}
+
+		return '画像URLが無効、または画像ファイルが 403/404 で取得できません。URLと権限を確認してください。';
 	}
 
 	/**

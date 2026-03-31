@@ -14,12 +14,12 @@
 		"lint:pkg-json": "wp-scripts lint-pkg-json",
 		"packages-update": "wp-scripts packages-update",
 		"test:e2e": "wp-scripts test-e2e",
-		"test:unit": "wp-scripts test-unit-js --passWithNoTests"
+		"test:unit": "wp-scripts test-unit-js --passWithNoTests",
+		"zip": "wp-scripts plugin-zip && node -e \"const fs=require('fs');const path=require('path');const pkg=require('./package.json');const filename=pkg.name+'-'+pkg.version+'.zip';const source=path.join(process.cwd(),pkg.name+'.zip');const outputDir=path.join(process.cwd(),'releases');const destination=path.join(outputDir,filename);fs.mkdirSync(outputDir,{recursive:true});if(fs.existsSync(destination)){fs.rmSync(destination);}fs.renameSync(source,destination);console.log('Created: releases/'+filename);\"",
+		"build:zip": "npm run build && npm run zip"
 	},
 	"devDependencies": {
 		"@wordpress/scripts": "^26.19.0"
 	},
-	"dependencies": {
-		"three": "^0.160.0"
-	}
+	"dependencies": {}
 }

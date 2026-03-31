@@ -37,17 +37,11 @@ export class PanoramaViewer {
 		const dataAutoRotate = container.getAttribute( 'data-auto-rotate' );
 		const dataSpeed      = container.getAttribute( 'data-auto-rotate-speed' );
 		const dataLon        = container.getAttribute( 'data-initial-longitude' );
-		const dataHeight     = container.getAttribute( 'data-height' );
 
-		this.autoRotate      = dataAutoRotate !== null ? dataAutoRotate !== 'false' : true;
-		this.autoRotateSpeed = dataSpeed      !== null ? parseFloat( dataSpeed )    : 3;
-		this.lon             = dataLon        !== null ? parseFloat( dataLon )      : 90;
-
-		// 高さの適用
-		if ( dataHeight ) {
-			container.style.paddingTop = '0';
-			container.style.height     = dataHeight + 'px';
-		}
+		this.autoRotate        = dataAutoRotate !== null ? dataAutoRotate !== 'false' : true;
+		this.initialAutoRotate = this.autoRotate;
+		this.autoRotateSpeed   = dataSpeed !== null ? parseFloat( dataSpeed ) : 3;
+		this.lon               = dataLon   !== null ? parseFloat( dataLon )   : 90;
 
 		// グローバルなデバイス情報を使用
 		const deviceInfo = getGlobalDeviceInfo();
@@ -102,8 +96,8 @@ export class PanoramaViewer {
 	 * 初期化処理
 	 */
 	init() {
-		// Three.jsの初期化
-		this.core.initializeThreeJS();
+		// シーンとカメラのみ初期化（レンダラーはビューポート表示時に遅延初期化）
+		this.core.initializeScene();
 
 		// UIコントロールの作成
 		this.uiControls.createControls();
@@ -115,8 +109,7 @@ export class PanoramaViewer {
 		this.eventHandlers.setupEventListeners();
 		this.fullscreenManager.setupEventListeners();
 
-		// アクティブビューアーとして登録
-		this.core.activate();
+		// activate() は setupIntersectionObserver() 内で行う
 	}
 
 	/**

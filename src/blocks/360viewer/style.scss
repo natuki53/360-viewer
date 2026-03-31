@@ -1,8 +1,8 @@
 .psv-container {
 	position: relative;
 	width: 100%;
-	height: 0;
-	padding-top: 56.25%; /* 16:9アスペクト比 */
+	/* aspect-ratio はインラインスタイルで設定される。フォールバック用デフォルト値 */
+	aspect-ratio: 16 / 9;
 	background-color: #f0f0f0;
 	user-select: none;
 	touch-action: pan-x pan-y; /* ボタン操作を妨げないタッチ設定 */
@@ -168,24 +168,11 @@
 }
 
 /* フルスクリーン時のスタイル */
-.psv-container:fullscreen {
-	padding-top: 0;
-	height: 100%;
-}
-
-/* ブラウザごとのフルスクリーンプレフィックス対応 */
-.psv-container:-webkit-full-screen {
-	padding-top: 0;
-	height: 100%;
-}
-
-.psv-container:-moz-full-screen {
-	padding-top: 0;
-	height: 100%;
-}
-
+.psv-container:fullscreen,
+.psv-container:-webkit-full-screen,
+.psv-container:-moz-full-screen,
 .psv-container:-ms-fullscreen {
-	padding-top: 0;
+	aspect-ratio: auto;
 	height: 100%;
 }
 

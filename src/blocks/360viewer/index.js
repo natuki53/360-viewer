@@ -14,16 +14,24 @@ import {
 	PanelBody,
 	RangeControl,
 	ToggleControl,
-	__experimentalNumberControl as NumberControl,
+	SelectControl,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+
+const ASPECT_RATIO_OPTIONS = [
+	{ label: 'ワイド (16:9)',    value: '16/9' },
+	{ label: 'スタンダード (4:3)', value: '4/3' },
+	{ label: 'シネマ (21:9)',    value: '21/9' },
+	{ label: 'パノラマ (2:1)',   value: '2/1' },
+	{ label: '正方形 (1:1)',     value: '1/1' },
+];
 
 const Edit = ( props ) => {
 	const { attributes, setAttributes } = props;
 	const {
 		imageUrl,
 		imageId,
-		height,
+		aspectRatio,
 		autoRotate,
 		autoRotateSpeed,
 		initialLongitude,
@@ -62,15 +70,13 @@ const Edit = ( props ) => {
 			{ /* サイドバー設定パネル */ }
 			<InspectorControls>
 				<PanelBody title={ __( '表示設定' ) } initialOpen={ true }>
-					<RangeControl
-						label={ __( '高さ (px)' ) }
-						value={ height }
+					<SelectControl
+						label={ __( 'アスペクト比' ) }
+						value={ aspectRatio }
+						options={ ASPECT_RATIO_OPTIONS }
 						onChange={ ( value ) =>
-							setAttributes( { height: value } )
+							setAttributes( { aspectRatio: value } )
 						}
-						min={ 200 }
-						max={ 900 }
-						step={ 10 }
 					/>
 				</PanelBody>
 				<PanelBody title={ __( '自動回転' ) } initialOpen={ true }>
@@ -95,13 +101,11 @@ const Edit = ( props ) => {
 					) }
 				</PanelBody>
 				<PanelBody title={ __( '初期視点' ) } initialOpen={ false }>
-					<NumberControl
+					<RangeControl
 						label={ __( '初期水平角度 (0〜360°)' ) }
 						value={ initialLongitude }
 						onChange={ ( value ) =>
-							setAttributes( {
-								initialLongitude: Number( value ),
-							} )
+							setAttributes( { initialLongitude: value } )
 						}
 						min={ 0 }
 						max={ 360 }
@@ -128,7 +132,7 @@ const Edit = ( props ) => {
 				) : (
 					<div
 						className="psv-preview"
-						style={ { height: `${ height }px` } }
+						style={ { aspectRatio: aspectRatio.replace( '/', ' / ' ) } }
 					>
 						{ /* 背景画像プレビュー */ }
 						<img
@@ -147,14 +151,6 @@ const Edit = ( props ) => {
 									'フロントエンドでインタラクティブな360°ビューアとして表示されます'
 								) }
 							</p>
-							<Button
-								onClick={ onRemoveImage }
-								variant="secondary"
-								isDestructive
-								size="small"
-							>
-								{ __( '写真を削除' ) }
-							</Button>
 						</div>
 					</div>
 				) }

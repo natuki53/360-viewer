@@ -139,7 +139,7 @@ export function getSphereGeometryConfig() {
 export function configureTextureFilters( texture, renderer ) {
 	const deviceInfo = getGlobalDeviceInfo();
 
-	if ( deviceInfo.hardwareAccelerationEnabled && ! deviceInfo.isMobile ) {
+	if ( deviceInfo.hardwareAccelerationEnabled && ! deviceInfo.isMobile && renderer ) {
 		texture.minFilter = THREE.LinearMipmapLinearFilter;
 		texture.magFilter = THREE.LinearFilter;
 		texture.generateMipmaps = true;

@@ -243,7 +243,7 @@ export class EventHandlers {
 			clearTimeout( this.viewer.autoRotateTimeout );
 		}
 		this.viewer.autoRotateTimeout = setTimeout( () => {
-			this.viewer.autoRotate = true;
+			this.viewer.autoRotate = this.viewer.initialAutoRotate;
 			this.viewer.lastTime = 0;
 		}, 3000 );
 	}

@@ -17,10 +17,6 @@ export class UIControls {
 	 * コントロールボタンを作成する
 	 */
 	createControls() {
-		this.controlsContainer = document.createElement( 'div' );
-		this.controlsContainer.className = 'psv-controls-container';
-		this.viewer.container.appendChild( this.controlsContainer );
-
 		this.createZoomButtons();
 
 		if ( ! this.viewer.isMobile ) {
@@ -207,16 +203,8 @@ export class UIControls {
 			);
 		}
 
-		if (
-			this.controlsContainer &&
-			this.viewer.container.contains( this.controlsContainer )
-		) {
-			this.viewer.container.removeChild( this.controlsContainer );
-		}
-
 		this.viewer.zoomInButton = null;
 		this.viewer.zoomOutButton = null;
 		this.viewer.fullscreenButton = null;
-		this.controlsContainer = null;
 	}
 }

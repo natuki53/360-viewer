@@ -25,6 +25,7 @@
 .psv-preview {
 	position: relative;
 	width: 100%;
+	/* aspect-ratio はインラインスタイルで設定される */
 	overflow: hidden;
 	pointer-events: auto;
 }

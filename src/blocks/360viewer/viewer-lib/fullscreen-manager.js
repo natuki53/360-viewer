@@ -236,13 +236,10 @@ export class FullscreenManager {
 	}
 
 	/**
-	 * フルスクリーンを終了する
+	 * オーバーレイ・スタイル・スクロールロックをクリーンアップする
+	 * ブラウザAPI呼び出しは含まない（呼び出し元が判断する）
 	 */
-	exitFullscreen() {
-		if ( DEBUG_MODE ) {
-			console.log( 'フルスクリーン終了' );
-		}
-
+	cleanupFullscreenOverlay() {
 		// 画面回転ロックを解除
 		if ( screen.orientation && screen.orientation.unlock ) {
 			screen.orientation.unlock();
@@ -254,6 +251,7 @@ export class FullscreenManager {
 			if ( viewport ) {
 				viewport.setAttribute( 'content', this.originalViewport );
 			}
+			this.originalViewport = null;
 		}
 
 		// スクロール防止を解除
@@ -282,6 +280,8 @@ export class FullscreenManager {
 			} else {
 				this.originalParent.appendChild( this.viewer.container );
 			}
+
+			this.originalParent = null;
 		}
 
 		// オーバーレイを削除
@@ -289,6 +289,17 @@ export class FullscreenManager {
 			this.fullscreenOverlay.remove();
 			this.fullscreenOverlay = null;
 		}
+	}
+
+	/**
+	 * フルスクリーンを終了する
+	 */
+	exitFullscreen() {
+		if ( DEBUG_MODE ) {
+			console.log( 'フルスクリーン終了' );
+		}
+
+		this.cleanupFullscreenOverlay();
 
 		// ブラウザのフルスクリーンを終了
 		if ( this.viewer.isMac ) {
@@ -348,6 +359,7 @@ export class FullscreenManager {
 
 	/**
 	 * フルスクリーン状態変更イベントハンドラー
+	 * ESC・F11・ブラウザ操作など外部要因によるフルスクリーン終了も処理する
 	 */
 	handleFullscreenChange() {
 		if ( this.viewer.isMobile ) return;
@@ -359,8 +371,21 @@ export class FullscreenManager {
 			document.msFullscreenElement
 		);
 
-		this.isFullscreen = isCurrentlyFullscreen;
-		this.onFullscreenChange();
+		if ( this.isFullscreen && ! isCurrentlyFullscreen ) {
+			// ブラウザのネイティブ操作でフルスクリーンが終了した場合
+			// オーバーレイ・スタイルをクリーンアップする
+			this.cleanupFullscreenOverlay();
+			this.isFullscreen = false;
+			this.onFullscreenChange();
+			setTimeout( () => {
+				if ( this.viewer.eventHandlers ) {
+					this.viewer.eventHandlers.onWindowResize();
+				}
+			}, 100 );
+		} else {
+			this.isFullscreen = isCurrentlyFullscreen;
+			this.onFullscreenChange();
+		}
 	}
 
 	/**

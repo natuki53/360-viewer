@@ -15,9 +15,9 @@
 		"imageId": {
 			"type": "number"
 		},
-		"height": {
-			"type": "number",
-			"default": 500
+		"aspectRatio": {
+			"type": "string",
+			"default": "16/9"
 		},
 		"autoRotate": {
 			"type": "boolean",
@@ -40,7 +40,8 @@
 		"reusable": true,
 		"inserter": true,
 		"lock": false,
-		"customClassName": true
+		"customClassName": true,
+		"align": [ "wide", "full" ]
 	},
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"editorScript": "file:../../../build/index.js",
