@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-31
+
+### Added
+- フォールバック判定とデバッグ設定（`PSV360Config.debug`）を整理
+
+### Changed
+- フロントアセット読み込みをブロック描画時のみに最適化
+- WebGL/Canvas2Dの切り替えとライフサイクル処理を改善
+- パッケージ/ブロック/プラグインのバージョン番号を1.1.0に更新
+
+### Fixed
+- WebGLイベントリスナー解除漏れによるリークリスクを修正
+- フルスクリーン終了時にレイアウトが崩れる問題を修正
+- Canvas2Dフォールバック時の描画負荷と安定性を改善
+
 ## [1.0.2] - 2024-01-XX
 
 ### Added

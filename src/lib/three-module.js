@@ -7,4 +7,4 @@
 import '../assets/three.min.js';
 
 // グローバルTHREEオブジェクトをエクスポート
-export default window.THREE; 
+export default window.THREE;
