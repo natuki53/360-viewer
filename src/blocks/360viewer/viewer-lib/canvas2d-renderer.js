@@ -28,7 +28,10 @@ export function createCanvas2DRenderer( container, context ) {
 	};
 
 	const performanceLevel = context?.deviceInfo?.performanceLevel || 'medium';
+	// インタラクション中も含めた最低フレーム間隔（ms）
+	// low: ~15fps、medium/high: ~30fps、インタラクション中は 60fps 上限
 	const minRenderInterval = performanceLevel === 'low' ? 66 : 33;
+	const minInteractInterval = 16; // ~60fps 上限
 
 	canvas.width = container.clientWidth;
 	canvas.height = container.clientHeight;
@@ -56,11 +59,10 @@ export function createCanvas2DRenderer( container, context ) {
 
 		render: function ( _scene, camera ) {
 			const now = performance.now();
-			const shouldThrottle = ! context.isUserInteracting;
-			if (
-				shouldThrottle &&
-				now - renderCache.lastRenderTime < minRenderInterval
-			) {
+			const interval = context.isUserInteracting
+				? minInteractInterval
+				: minRenderInterval;
+			if ( now - renderCache.lastRenderTime < interval ) {
 				return;
 			}
 			renderCache.lastRenderTime = now;

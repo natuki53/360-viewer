@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 360° Viewer
  * Description: Add a 360° photo viewer block using Three.js.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: natuki
  */
 
@@ -81,7 +81,7 @@ function viewer360_get_asset_version($relative_path) {
         return (string) filemtime($absolute_path);
     }
 
-    return '1.1.0';
+    return '1.1.1';
 }
 
 function viewer360_enqueue_assets() {
@@ -130,7 +130,7 @@ function viewer360_enqueue_assets() {
         'PSV360Config',
         array(
             'disableResponsiveImages' => true,
-            'version' => '1.1.0',
+            'version' => '1.1.1',
             'debug' => defined('WP_DEBUG') && WP_DEBUG,
         )
     );

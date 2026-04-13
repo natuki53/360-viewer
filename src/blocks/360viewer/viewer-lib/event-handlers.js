@@ -242,8 +242,11 @@ export class EventHandlers {
 		if ( this.viewer.autoRotateTimeout ) {
 			clearTimeout( this.viewer.autoRotateTimeout );
 		}
+		// 初期設定で自動回転が無効の場合は再開しない
+		if ( ! this.viewer.initialAutoRotate ) return;
 		this.viewer.autoRotateTimeout = setTimeout( () => {
-			this.viewer.autoRotate = this.viewer.initialAutoRotate;
+			if ( this.viewer.isDisposed ) return;
+			this.viewer.autoRotate = true;
 			this.viewer.lastTime = 0;
 		}, 3000 );
 	}

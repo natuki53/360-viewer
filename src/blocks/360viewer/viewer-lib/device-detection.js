@@ -86,6 +86,7 @@ export function detectWebGLSupport() {
 					'Mobile device: WebGL context available, skipping advanced tests'
 				);
 			}
+			gl.getExtension( 'WEBGL_lose_context' )?.loseContext();
 			return true;
 		}
 
@@ -97,6 +98,7 @@ export function detectWebGLSupport() {
 					'WebGL not supported: Cannot create WebGL program'
 				);
 			}
+			gl.getExtension( 'WEBGL_lose_context' )?.loseContext();
 			return false;
 		}
 
@@ -108,13 +110,16 @@ export function detectWebGLSupport() {
 			if ( DEBUG_MODE ) {
 				console.warn( 'WebGL not supported: Cannot create shaders' );
 			}
+			gl.deleteProgram( testProgram );
+			gl.getExtension( 'WEBGL_lose_context' )?.loseContext();
 			return false;
 		}
 
-		// リソースをクリーンアップ
+		// リソースをクリーンアップしてコンテキストを解放
 		gl.deleteShader( vertexShader );
 		gl.deleteShader( fragmentShader );
 		gl.deleteProgram( testProgram );
+		gl.getExtension( 'WEBGL_lose_context' )?.loseContext();
 
 		if ( DEBUG_MODE ) {
 			console.log( 'WebGL support confirmed' );
@@ -141,165 +146,177 @@ export function detectDevicePerformanceLevel() {
 			canvas.getContext( 'experimental-webgl' );
 		if ( ! gl ) return 'low';
 
-		const debugInfo = gl.getExtension( 'WEBGL_debug_renderer_info' );
-		if ( debugInfo ) {
-			const renderer = gl.getParameter(
-				debugInfo.UNMASKED_RENDERER_WEBGL
-			);
-			const vendor = gl.getParameter( debugInfo.UNMASKED_VENDOR_WEBGL );
+		const level = detectPerformanceLevelFromGL( gl );
 
-			const rendererLower = renderer.toLowerCase();
-			const vendorLower = vendor.toLowerCase();
+		// WebGLコンテキストを明示的に解放してブラウザのコンテキスト枠を節約する
+		gl.getExtension( 'WEBGL_lose_context' )?.loseContext();
 
-			if ( DEBUG_MODE ) {
-				console.log( 'GPU Detection:', {
-					vendor: vendor,
-					renderer: renderer,
-					vendorLower: vendorLower,
-					rendererLower: rendererLower,
-				} );
-			}
-
-			// ソフトウェアレンダリングの場合は低性能
-			if (
-				rendererLower.includes( 'software' ) ||
-				rendererLower.includes( 'llvmpipe' )
-			) {
-				return 'low';
-			}
-
-			// GPUベンダーとモデルによる判定
-			if ( vendorLower.includes( 'nvidia' ) ) {
-				// NVIDIA GPU
-				if (
-					rendererLower.includes( 'rtx' ) ||
-					rendererLower.includes( 'gtx 10' ) ||
-					rendererLower.includes( 'gtx 16' ) ||
-					rendererLower.includes( 'gtx 20' ) ||
-					rendererLower.includes( 'gtx 30' ) ||
-					rendererLower.includes( 'gtx 40' )
-				) {
-					return 'high';
-				} else if (
-					rendererLower.includes( 'gtx' ) ||
-					rendererLower.includes( 'gt' )
-				) {
-					return 'medium';
-				}
-			} else if (
-				vendorLower.includes( 'amd' ) ||
-				vendorLower.includes( 'ati' )
-			) {
-				// AMD GPU - 詳細な判定
-				if (
-					rendererLower.includes( 'rx 6' ) ||
-					rendererLower.includes( 'rx 7' ) ||
-					rendererLower.includes( 'rx 8' ) ||
-					rendererLower.includes( 'radeon rx' )
-				) {
-					return 'high';
-				} else if (
-					rendererLower.includes( 'rx 5' ) ||
-					rendererLower.includes( 'rx 4' )
-				) {
-					return 'medium';
-				} else if (
-					rendererLower.includes( 'rx' ) ||
-					rendererLower.includes( 'radeon' )
-				) {
-					return 'medium';
-				} else if (
-					rendererLower.includes( 'vega' ) ||
-					rendererLower.includes( 'raven ridge' ) ||
-					rendererLower.includes( 'picasso' ) ||
-					rendererLower.includes( 'renoir' )
-				) {
-					return 'medium';
-				} else if (
-					rendererLower.includes( 'radeon r' ) ||
-					rendererLower.includes( 'radeon hd' )
-				) {
-					return 'low';
-				}
-			} else if ( vendorLower.includes( 'intel' ) ) {
-				// Intel GPU - 詳細な判定
-				if ( rendererLower.includes( 'arc' ) ) {
-					return 'high';
-				} else if (
-					rendererLower.includes( 'iris xe' ) ||
-					rendererLower.includes( 'iris plus' )
-				) {
-					return 'medium';
-				} else if (
-					rendererLower.includes( 'uhd' ) ||
-					rendererLower.includes( 'hd graphics' )
-				) {
-					const hdMatch = rendererLower.match( /hd graphics (\d+)/ );
-					const uhdMatch =
-						rendererLower.match( /uhd graphics (\d+)/ );
-
-					if ( hdMatch ) {
-						const hdVersion = parseInt( hdMatch[ 1 ] );
-						if ( hdVersion >= 630 ) return 'medium';
-						if ( hdVersion >= 520 ) return 'low';
-						return 'low';
-					} else if ( uhdMatch ) {
-						const uhdVersion = parseInt( uhdMatch[ 1 ] );
-						if ( uhdVersion >= 750 ) return 'medium';
-						if ( uhdVersion >= 630 ) return 'low';
-						return 'low';
-					} else if (
-						rendererLower.includes( 'uhd 7' ) ||
-						rendererLower.includes( 'uhd 6' )
-					) {
-						return 'low';
-					} else {
-						return 'low';
-					}
-				} else {
-					return 'low';
-				}
-			} else if ( vendorLower.includes( 'apple' ) ) {
-				// Apple Silicon
-				if (
-					rendererLower.includes( 'apple m1' ) ||
-					rendererLower.includes( 'apple m2' ) ||
-					rendererLower.includes( 'apple m3' ) ||
-					rendererLower.includes( 'apple m4' )
-				) {
-					return 'high';
-				} else {
-					return 'medium';
-				}
-			}
-
-			// モバイルGPUの判定
-			if ( rendererLower.includes( 'adreno' ) ) {
-				const adrenoMatch = rendererLower.match( /adreno (\d+)/ );
-				if ( adrenoMatch ) {
-					const adrenoVersion = parseInt( adrenoMatch[ 1 ] );
-					if ( adrenoVersion >= 640 ) return 'high';
-					if ( adrenoVersion >= 530 ) return 'medium';
-					return 'low';
-				}
-			} else if ( rendererLower.includes( 'mali' ) ) {
-				const maliMatch = rendererLower.match( /mali-?g(\d+)/ );
-				if ( maliMatch ) {
-					const maliVersion = parseInt( maliMatch[ 1 ] );
-					if ( maliVersion >= 78 ) return 'high';
-					if ( maliVersion >= 52 ) return 'medium';
-					return 'low';
-				}
-			} else if ( rendererLower.includes( 'powervr' ) ) {
-				return 'medium';
-			}
-		}
-
-		// デフォルトは中性能
-		return 'medium';
+		return level;
 	} catch ( e ) {
 		return 'low';
 	}
+}
+
+/**
+ * WebGLコンテキストからデバイス性能レベルを判定する内部ヘルパー
+ * @param {WebGLRenderingContext} gl
+ * @returns {string} 'high' | 'medium' | 'low'
+ */
+function detectPerformanceLevelFromGL( gl ) {
+	const debugInfo = gl.getExtension( 'WEBGL_debug_renderer_info' );
+	if ( ! debugInfo ) return 'medium';
+
+	const renderer = gl.getParameter( debugInfo.UNMASKED_RENDERER_WEBGL );
+	const vendor = gl.getParameter( debugInfo.UNMASKED_VENDOR_WEBGL );
+
+	const rendererLower = renderer.toLowerCase();
+	const vendorLower = vendor.toLowerCase();
+
+	if ( DEBUG_MODE ) {
+		console.log( 'GPU Detection:', {
+			vendor: vendor,
+			renderer: renderer,
+			vendorLower: vendorLower,
+			rendererLower: rendererLower,
+		} );
+	}
+
+	// ソフトウェアレンダリングの場合は低性能
+	if (
+		rendererLower.includes( 'software' ) ||
+		rendererLower.includes( 'llvmpipe' )
+	) {
+		return 'low';
+	}
+
+	// GPUベンダーとモデルによる判定
+	if ( vendorLower.includes( 'nvidia' ) ) {
+		// NVIDIA GPU
+		if (
+			rendererLower.includes( 'rtx' ) ||
+			rendererLower.includes( 'gtx 10' ) ||
+			rendererLower.includes( 'gtx 16' ) ||
+			rendererLower.includes( 'gtx 20' ) ||
+			rendererLower.includes( 'gtx 30' ) ||
+			rendererLower.includes( 'gtx 40' )
+		) {
+			return 'high';
+		} else if (
+			rendererLower.includes( 'gtx' ) ||
+			rendererLower.includes( 'gt' )
+		) {
+			return 'medium';
+		}
+	} else if (
+		vendorLower.includes( 'amd' ) ||
+		vendorLower.includes( 'ati' )
+	) {
+		// AMD GPU - 詳細な判定
+		if (
+			rendererLower.includes( 'rx 6' ) ||
+			rendererLower.includes( 'rx 7' ) ||
+			rendererLower.includes( 'rx 8' ) ||
+			rendererLower.includes( 'radeon rx' )
+		) {
+			return 'high';
+		} else if (
+			rendererLower.includes( 'rx 5' ) ||
+			rendererLower.includes( 'rx 4' )
+		) {
+			return 'medium';
+		} else if (
+			rendererLower.includes( 'rx' ) ||
+			rendererLower.includes( 'radeon' )
+		) {
+			return 'medium';
+		} else if (
+			rendererLower.includes( 'vega' ) ||
+			rendererLower.includes( 'raven ridge' ) ||
+			rendererLower.includes( 'picasso' ) ||
+			rendererLower.includes( 'renoir' )
+		) {
+			return 'medium';
+		} else if (
+			rendererLower.includes( 'radeon r' ) ||
+			rendererLower.includes( 'radeon hd' )
+		) {
+			return 'low';
+		}
+	} else if ( vendorLower.includes( 'intel' ) ) {
+		// Intel GPU - 詳細な判定
+		if ( rendererLower.includes( 'arc' ) ) {
+			return 'high';
+		} else if (
+			rendererLower.includes( 'iris xe' ) ||
+			rendererLower.includes( 'iris plus' )
+		) {
+			return 'medium';
+		} else if (
+			rendererLower.includes( 'uhd' ) ||
+			rendererLower.includes( 'hd graphics' )
+		) {
+			const hdMatch = rendererLower.match( /hd graphics (\d+)/ );
+			const uhdMatch =
+				rendererLower.match( /uhd graphics (\d+)/ );
+
+			if ( hdMatch ) {
+				const hdVersion = parseInt( hdMatch[ 1 ] );
+				if ( hdVersion >= 630 ) return 'medium';
+				if ( hdVersion >= 520 ) return 'low';
+				return 'low';
+			} else if ( uhdMatch ) {
+				const uhdVersion = parseInt( uhdMatch[ 1 ] );
+				if ( uhdVersion >= 750 ) return 'medium';
+				if ( uhdVersion >= 630 ) return 'low';
+				return 'low';
+			} else if (
+				rendererLower.includes( 'uhd 7' ) ||
+				rendererLower.includes( 'uhd 6' )
+			) {
+				return 'low';
+			} else {
+				return 'low';
+			}
+		} else {
+			return 'low';
+		}
+	} else if ( vendorLower.includes( 'apple' ) ) {
+		// Apple Silicon
+		if (
+			rendererLower.includes( 'apple m1' ) ||
+			rendererLower.includes( 'apple m2' ) ||
+			rendererLower.includes( 'apple m3' ) ||
+			rendererLower.includes( 'apple m4' )
+		) {
+			return 'high';
+		} else {
+			return 'medium';
+		}
+	}
+
+	// モバイルGPUの判定
+	if ( rendererLower.includes( 'adreno' ) ) {
+		const adrenoMatch = rendererLower.match( /adreno (\d+)/ );
+		if ( adrenoMatch ) {
+			const adrenoVersion = parseInt( adrenoMatch[ 1 ] );
+			if ( adrenoVersion >= 640 ) return 'high';
+			if ( adrenoVersion >= 530 ) return 'medium';
+			return 'low';
+		}
+	} else if ( rendererLower.includes( 'mali' ) ) {
+		const maliMatch = rendererLower.match( /mali-?g(\d+)/ );
+		if ( maliMatch ) {
+			const maliVersion = parseInt( maliMatch[ 1 ] );
+			if ( maliVersion >= 78 ) return 'high';
+			if ( maliVersion >= 52 ) return 'medium';
+			return 'low';
+		}
+	} else if ( rendererLower.includes( 'powervr' ) ) {
+		return 'medium';
+	}
+
+	// デフォルトは中性能
+	return 'medium';
 }
 
 /**

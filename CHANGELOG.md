@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-13
+
+### Fixed
+- `data-auto-rotate="false"` を設定していてもドラッグ後に自動回転が再開してしまう問題を修正
+- `dispose()` 後に `autoRotateTimeout` のコールバックが実行されうる問題を修正（`isDisposed` チェックを追加）
+- WebGL テスト用の一時コンテキスト（`detectWebGLSupport` / `detectDevicePerformanceLevel`）を未解放のまま破棄していた問題を修正。`WEBGL_lose_context` 拡張で明示的に解放するよう変更し、ブラウザのコンテキスト枠を圧迫しないように対応
+- SPA環境など `beforeunload` が発火しない状況でビューアーのコンテナが DOM から削除された際にリソースが解放されなかった問題を修正。`MutationObserver` でコンテナ削除を検知して `dispose()` を呼ぶよう対応
+- Canvas2D フォールバック時、インタラクション中にスロットリングが無効化されてフレームレート無制限で CPU 演算が走る問題を修正。インタラクション中も 60fps 上限（16ms）を設けるよう変更
+
 ## [1.1.0] - 2026-03-31
 
 ### Added
