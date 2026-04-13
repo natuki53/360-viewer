@@ -4,6 +4,7 @@
 	"description": "WordPress 360° Viewer Block",
 	"scripts": {
 		"build": "wp-scripts build",
+		"release:zip": "node scripts/create-release-zip.cjs",
 		"start": "wp-scripts start",
 		"check-engines": "wp-scripts check-engines",
 		"check-licenses": "wp-scripts check-licenses",
@@ -19,7 +20,8 @@
 		"build:zip": "npm run build && npm run zip"
 	},
 	"devDependencies": {
-		"@wordpress/scripts": "^26.19.0"
+		"@wordpress/scripts": "^26.19.0",
+		"bestzip": "^2.2.1"
 	},
 	"dependencies": {}
 }

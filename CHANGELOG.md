@@ -23,13 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2024-01-XX
 
 ### Added
-- 新機能の準備（開発中）
+- 次期機能追加に向けた準備
 
 ### Changed
-- バージョン番号を1.0.2に統一
+- リリースアセットおよび関連ファイルのバージョン表記を`1.0.2`に統一
 
 ### Fixed
-- バージョン管理の改善
+- バージョン管理運用を改善
 
 ## [1.0.1] - 2024-01-XX
 

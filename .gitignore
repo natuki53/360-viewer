@@ -7,4 +7,5 @@ node_modules/
 # Build/package artifacts
 dist-package/
 *.zip
+!releases/*.zip
 __MACOSX/
